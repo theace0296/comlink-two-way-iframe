@@ -1,7 +1,5 @@
 import * as Comlink from 'comlink';
 
-import './App.css';
-
 const generateUUID = () =>
   Array.from({ length: 4 }, () => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)).join('-');
 
@@ -17,13 +15,23 @@ class RemotesContainer {
   /** @type {Map<string, MessagePort>} */
   _ports = new Map();
 
+  /** @type {Map<string, Window>} */
+  _targets = new Map();
+
+  /**
+   * @param {Window | null} target
+   */
   async push(target) {
+    if (!target) {
+      return;
+    }
     const id = generateUUID();
     const { port1, port2 } = new MessageChannel();
 
     this._ports.set(id, port1);
+    this._targets.set(id, target);
     this._remotes.set(id, Comlink.wrap(Comlink.windowEndpoint(target)));
-    console.log('Attempting to initialize IFrame Window...');
+    console.log('Attempting to initialize IFrame Window...', target);
     Comlink.expose(AppService, port1);
     // Wait a bit for the comlink instance on the iframe to load...
     // theoretically we could start the handshake process from the iframe,
@@ -62,28 +70,36 @@ const AppService = {
       console.log(`IFrame attempted to handshake with invalid ID: ${id}`);
       return false;
     }
-    console.log(`Registered iframe with app service, ID: ${id}`);
+    console.log(`Registered IFrame with App Service, ID: ${id}`, this._remotesContainer._targets.get(id));
     return true;
   },
 };
 
 function App() {
+  /** @param {import('react').SyntheticEvent<HTMLIFrameElement, Event>} e */
   const handleIFrameOnLoad = e => {
-    AppService._remotesContainer.push(e.target.contentWindow);
+    AppService._remotesContainer.push(e.currentTarget.contentWindow);
   };
 
   return (
-    <div className="App">
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
       <div
         style={{
-          border: 'black solid 1px',
-          width: 500,
-          height: 500,
-          display: 'flex',
+          display: 'grid',
+          gap: '7px',
+          gridTemplateColumns: 'repeat(2, 1fr)',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-        <iframe title="Test" src="/" width={500} height={500} onLoad={handleIFrameOnLoad} />
+        {Array.from({ length: 4 }, (_, i) => (
+          <iframe key={i} title={`Test ${i}`} src="/" width={300} height={300} onLoad={handleIFrameOnLoad} />
+        ))}
       </div>
     </div>
   );
