@@ -1,13 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+const App = React.lazy(() => import('./App'));
+const IFrame = React.lazy(() => import('./IFrame'));
+
+const embedded = window.self !== window.top;
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <React.Suspense fallback="loading...">
+      {embedded ? <IFrame /> : <App />}
+    </React.Suspense>
   </React.StrictMode>
 );
 

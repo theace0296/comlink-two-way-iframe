@@ -2,22 +2,23 @@ import * as Comlink from 'comlink';
 
 import './App.css';
 
-function App() {
+function IFrame() {
   return (
     <div className="App">
       <div
         style={{
-          border: 'black solid 1px',
-          width: 500,
-          height: 500,
+          border: 'white solid 2px',
+          backgroundColor: '#303030',
+          width: 450,
+          height: 450,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-        <iframe title='Test' src='/' width={500} height={500} />
+        <p>SOME IFRAME TEXT</p>
       </div>
     </div>
   );
 }
 
-export default App;
+export default IFrame;
