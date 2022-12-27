@@ -64,6 +64,8 @@ class RemotesContainer {
 }
 
 const AppService = {
+  /** @type {Map<string, () => void>} */
+  _subscriptions: new Map(),
   _remotesContainer: new RemotesContainer(),
   __handshake__(id) {
     if (!this._remotesContainer.hasRemoteWithId(id)) {
@@ -72,6 +74,34 @@ const AppService = {
     }
     console.log(`Registered IFrame with App Service, ID: ${id}`, this._remotesContainer._targets.get(id));
     return true;
+  },
+  /**
+   * Add a subscription to main App state whose callback will be called on state changes.
+   * @param {() => void} callback
+   */
+  subscribe(id, callback) {
+    if (!this._remotesContainer.hasRemoteWithId(id)) {
+      console.log(`IFrame attempted to handshake with invalid ID: ${id}`);
+      return false;
+    }
+    if (this._subscriptions.has(id)) {
+      console.log(`IFrame attempted to subscribe multiple times with ID: ${id}`);
+      return false;
+    }
+    this._subscriptions.set(id, callback);
+    console.log(`ID: ${id}, subscribed to App State`);
+    return Comlink.proxy(() => {
+      if (!this._subscriptions.has(id)) {
+        return;
+      }
+      return this._subscriptions.delete(id);
+    });
+  },
+  /**
+   * Notify subscriptions
+   */
+  notify() {
+    this._subscriptions.forEach(callback => callback());
   },
 };
 
@@ -88,7 +118,14 @@ function App() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'column',
       }}>
+      <button
+        onClick={() => {
+          AppService.notify();
+        }}>
+        Notify Subscriptions
+      </button>
       <div
         style={{
           display: 'grid',

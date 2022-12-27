@@ -3,6 +3,7 @@ import * as Comlink from 'comlink';
 /**
  * @typedef RemoteInterface
  * @property {(id: string) => boolean} __handshake__
+ * @property {(id: string, callback: () => void) => (() => boolean)} subscribe
  */
 
 const IFrameService = {
@@ -10,6 +11,8 @@ const IFrameService = {
   _id: '',
   /** @type {import('comlink').Remote<RemoteInterface>} */
   _remote: null,
+  /** @type {() => Promise<boolean>} */
+  _unsubscribe: null,
 
   /**
    * @param {string} id
@@ -28,6 +31,19 @@ const IFrameService = {
     console.log(`Connected to Parent Window with ID: ${this._id}!`);
     initializeCallback(true);
   },
+
+  async subscribe() {
+    this._unsubscribe = await this._remote.subscribe(
+      this._id,
+      Comlink.proxy(() => {
+        console.log(`${this._id}: Notified on state change`);
+      }),
+    );
+  },
+
+  async unsubscribe(){
+    await this._unsubscribe();
+  }
 };
 Comlink.expose(IFrameService, window);
 
@@ -49,8 +65,20 @@ function IFrame() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexDirection: 'column',
         }}>
-        <p>SOME IFRAME TEXT</p>
+        <button
+          onClick={() => {
+            IFrameService.subscribe();
+          }}>
+          Subscribe to App
+        </button>
+        <button
+          onClick={() => {
+            IFrameService.unsubscribe();
+          }}>
+          Unsubscribe from App
+        </button>
       </div>
     </div>
   );
